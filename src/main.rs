@@ -1,5 +1,10 @@
 extern crate rand;
-use std::{thread, time};
+extern crate termion;
+
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::{env, thread, time};
+use termion::{clear, color};
 
 fn census(_world: [[u8; 75]; 75]) -> u16 {
     let mut count = 0;
@@ -61,17 +66,85 @@ fn generation(_world: [[u8; 75]; 75]) -> [[u8; 75]; 75] {
     newworld
 }
 
+fn populate_from_filename(filename: String) -> [[u8; 75]; 75] {
+    let mut newworld = [[0u8; 75]; 75];
+    let file = File::open(filename).unwrap();
+    let reader = BufReader::new(file);
+    let mut pairs: Vec<(usize, usize)> = Vec::new();
+    for (_index, line) in reader.lines().enumerate() {
+        let l = line.unwrap();
+        let mut words = l.split_whitespace();
+        let left = words.next().unwrap();
+        let right = words.next().unwrap();
+        pairs.push((
+            left.parse::<usize>().unwrap(),
+            right.parse::<usize>().unwrap(),
+        ));
+    }
+
+    for i in 0..74 {
+        for j in 0..74 {
+            newworld[i][j] = 0;
+        }
+    }
+
+    for (x, y) in pairs {
+        newworld[x][y] = 1;
+    }
+    newworld
+}
+
+fn displayworld(world: [[u8; 75]; 75]) {
+    for i in 0..74 {
+        for j in 0..74 {
+            if world[i][j] == 1 {
+                print!("{red}*", red = color::Fg(color::Red));
+            } else {
+                print!(" ");
+            }
+        }
+        println!("");
+    }
+}
+
 fn main() {
     let mut world = [[0u8; 75]; 75];
     let mut generations = 0;
 
-    for i in 0..74 {
-        for j in 0..74 {
-            if rand::random() {
-                world[i][j] = 1;
-            } else {
-                world[i][j] = 0;
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        for i in 0..74 {
+            for j in 0..74 {
+                if rand::random() {
+                    world[i][j] = 1;
+                } else {
+                    world[i][j] = 0;
+                }
             }
         }
+    } else {
+        let filename = env::args().nth(1).unwrap();
+        world = populate_from_filename(filename);
+    }
+
+    println!(
+        "Population at generation {} is {}",
+        generations,
+        census(world)
+    );
+    for _gens in 0..100 {
+        let temp = generation(world);
+        world = temp;
+        generations += 1;
+        println!("{}", clear::All);
+        displayworld(world);
+        println!(
+            "{blue}Population at generation {g} is {c}",
+            blue = color::Fg(color::Blue),
+            g = generations,
+            c = census(world)
+        );
+        thread::sleep(time::Duration::from_secs(2));
     }
 }
