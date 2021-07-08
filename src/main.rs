@@ -71,7 +71,7 @@ fn populate_from_filename(filename: String) -> [[u8; 75]; 75] {
     let file = File::open(filename).unwrap();
     let reader = BufReader::new(file);
     let mut pairs: Vec<(usize, usize)> = Vec::new();
-    for (index, line) in reader.lines().enumerate() {
+    for (_index, line) in reader.lines().enumerate() {
         let l = line.unwrap();
         let mut words = l.split_whitespace();
         let left = words.next().unwrap();
@@ -137,6 +137,8 @@ fn main() {
         let temp = generation(world);
         world = temp;
         generations += 1;
+        println!("{}", clear::All);
+        displayworld(world);
         println!(
             "{blue}Population at generation {g} is {c}",
             blue = color::Fg(color::Blue),
